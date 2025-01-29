@@ -6,6 +6,8 @@ use tokio::process::Command;
 pub enum Method {
     GET,
     POST,
+    PUT,
+    DELETE,
 }
 
 #[derive(Debug)]
@@ -72,6 +74,8 @@ impl CurlWrapper {
         match &self.method {
             Some(Method::GET) => curl.arg("-X").arg("GET"),
             Some(Method::POST) => curl.arg("-X").arg("POST"),
+            Some(Method::PUT) => curl.arg("-X").arg("PUT"),
+            Some(Method::DELETE) => curl.arg("-X").arg("DELETE"),
             None => curl.arg("-X").arg("GET"),
         };
 
