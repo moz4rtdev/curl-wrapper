@@ -19,6 +19,7 @@ pub struct CurlWrapper {
     proxy: Option<String>,
     redirects: bool,
     compressed: bool,
+    interface: Option<String>,
 }
 
 impl CurlWrapper {
@@ -31,6 +32,7 @@ impl CurlWrapper {
             proxy: None,
             redirects: false,
             compressed: false,
+            interface: None,
         }
     }
 
@@ -64,8 +66,16 @@ impl CurlWrapper {
         self.compressed = compress;
     }
 
+    pub fn interface(&mut self, interface: &str) {
+        self.interface = Some(interface.to_string());
+    }
+
     pub async fn execute(&self) -> Result<Output, io::Error> {
         let mut curl = Command::new("curl");
+
+        if let Some(interface) = &self.interface {
+            curl.arg("--interface").arg(interface);
+        }
 
         if self.redirects {
             curl.arg("-L");
