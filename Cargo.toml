@@ -2,6 +2,9 @@
 name = "curl-wrapper"
 version = "0.1.0"
 edition = "2021"
+authors = ["mallocdev <herdersonriker@gmail.com>"]
+description = "A simple wrapper around the curl command-line interface"
+license = "MIT"
 
 [dependencies]
 tokio = { version = "1.42.0", features = ["full"] }
