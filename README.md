@@ -8,21 +8,21 @@ curl-wrapper = { git = "https://github.com/mallocdev/curl-wrapper" }
 
 ### USAGE
 ```rust
-use curl_wrapper::CurlWrapper;
+use curl_wrapper::Curl;
 use curl_wrapper::Method;
 
 #[tokio::main]
 async fn main() {
-  let mut curl = CurlWrapper::new("https://example.com");
-  curl.method(Method::GET);
-  curl.set_header("User-Agent: curl/7.81.0");
-  curl.set_body("Hello, world!");
-  curl.set_proxy("http://proxy.example.com:8080");
-  curl.redirects(true);
-  curl.compressed(true);
-  curl.interface("eth0");
+  let mut curl = Curl::new("https://example.com")
+    .method(Method::GET)
+    .set_header("User-Agent: curl/7.81.0")
+    .set_body("Hello, world!")
+    .set_proxy("http://proxy.example.com:8080")
+    .redirects(true)
+    .compressed(true)
+    .interface("eth0")
 
-  let output = curl.execute().await.unwrap();
+  let output = curl.send().await.unwrap();
   println!("Output: {}", String::from_utf8_lossy(&output.stdout));
 }
 ```
