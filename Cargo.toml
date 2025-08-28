@@ -1,10 +1,11 @@
 [package]
 name = "curl-wrapper"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-authors = ["mallocdev <herdersonriker@gmail.com>"]
+authors = ["moz4rtdev <herdersonriker@gmail.com>"]
 description = "A simple wrapper around the curl command-line interface"
 license = "MIT"
 
 [dependencies]
+regex = "1.11.2"
 tokio = { version = "1.42.0", features = ["full"] }

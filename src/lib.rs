@@ -1,6 +1,7 @@
 //! A simple wrapper around the curl command-line interface
 
-use std::{io, process::Output};
+use regex::Regex;
+use std::{fmt, io};
 use tokio::process::Command;
 
 #[derive(Debug)]
@@ -15,14 +16,31 @@ pub struct Curl;
 
 #[derive(Debug)]
 pub struct CurlBuilder {
+    /// The URL to send the request to.
     url: String,
+    /// The HTTP method to use.
     method: Option<Method>,
+    /// The headers to send with the request.
     headers: Vec<String>,
+    /// The body to send with the request.
     body: Option<String>,
+    /// The proxy to use.
     proxy: Option<String>,
+    /// Whether to follow redirects.
     redirects: bool,
+    /// Whether to enable compression.
     compressed: bool,
+    /// The network interface to use.
     interface: Option<String>,
+}
+
+pub struct CurlResponse {
+    /// The status code of the response.
+    pub status_code: u16,
+    /// The headers of the response.
+    pub headers: Vec<String>,
+    /// The body of the response.
+    pub body: String,
 }
 
 impl Curl {
@@ -54,7 +72,7 @@ impl Curl {
     ///         .interface("eth0");
     ///
     ///     let output = curl.send().await.unwrap();
-    ///     println!("Output: {}", String::from_utf8_lossy(&output.stdout));
+    ///     println!("Output: {:?}", output);
     /// }
     /// ```
     pub fn new(url: &str) -> CurlBuilder {
@@ -208,11 +226,13 @@ impl CurlBuilder {
     ///     let curl = Curl::new("https://example.com")
     ///         .interface("eth0");
     ///     let output = curl.send().await.unwrap();
-    ///     println!("Output: {}", String::from_utf8_lossy(&output.stdout));
+    ///     println!("Output: {:?}", output);
     /// }
     /// ```
-    pub async fn send(&self) -> Result<Output, io::Error> {
+    pub async fn send(&self) -> Result<CurlResponse, io::Error> {
         let mut curl = Command::new("curl");
+        curl.arg("--silent");
+        curl.arg("--include");
 
         if let Some(interface) = &self.interface {
             curl.arg("--interface").arg(interface);
@@ -249,7 +269,70 @@ impl CurlBuilder {
         }
 
         let output = curl.output().await?;
-        Ok(output)
+        Ok(CurlResponse::new(output.stdout))
+    }
+}
+
+impl fmt::Debug for CurlResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "CurlResponse {{ status_code: {}, headers: {:?}, body: {:?} }}",
+            self.status_code, self.headers, self.body
+        )
+    }
+}
+
+impl CurlResponse {
+    /// Create a new CurlResponse from an Output.
+    ///
+    /// # Arguments
+    /// * `output` - The output of the curl command.
+    ///
+    /// # Returns
+    /// A new CurlResponse.
+    ///
+    /// # Example
+    /// ```
+    /// use curl_wrapper::CurlResponse;
+    ///
+    /// let output = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Hello, World!</h1></body></html>";
+    /// let response = CurlResponse::new(output.to_vec());
+    /// println!("Status Code: {}", response.status_code);
+    /// println!("Headers: {:?}", response.headers);
+    /// println!("Body: {:?}", response.body);
+    /// ```
+    pub fn new(stdout: Vec<u8>) -> Self {
+        let raw_response = String::from_utf8_lossy(&stdout);
+        let blocks: Vec<&str> = raw_response.split("\r\n\r\n").collect();
+        let re = Regex::new(r"HTTP/.*?\s(\d{3})").unwrap();
+        let mut status_code = 0;
+        let mut headers = Vec::new();
+        let mut body = String::new();
+        for block in &blocks {
+            let capture = re.captures(block);
+            if capture.is_none() {
+                continue;
+            }
+            let code = capture.unwrap().get(1).unwrap();
+            if code.as_str().starts_with("3") {
+                continue;
+            }
+            status_code = code.as_str().parse().unwrap();
+            headers = block
+                .lines()
+                .skip(1)
+                .take_while(|line| !line.is_empty())
+                .map(|line| line.trim().to_string())
+                .collect();
+            body = blocks.last().unwrap().trim().to_string();
+            break;
+        }
+        CurlResponse {
+            status_code,
+            headers,
+            body,
+        }
     }
 }
 
@@ -266,9 +349,9 @@ mod tests {
             .set_header("Content-Type: application/json")
             .set_header("Cookie: test-cookie");
         let response = curl.send().await.unwrap();
-        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
-        println!("{:?}", curl);
-        println!("{}", result);
+        println!("status code: {:?}", response.status_code);
+        println!("body: {}", response.body);
+        println!("headers: {:?}", response.headers);
     }
 
     #[tokio::test]
@@ -278,9 +361,9 @@ mod tests {
             .set_header("Content-Type: application/json")
             .set_header("Cookie: test-cookie");
         let response = curl.send().await.unwrap();
-        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
-        println!("{:?}", curl);
-        println!("{}", result);
+        println!("status code: {:?}", response.status_code);
+        println!("body: {}", response.body);
+        println!("headers: {:?}", response.headers);
     }
 
     #[tokio::test]
@@ -290,9 +373,9 @@ mod tests {
             .set_header("Content-Type: application/json")
             .set_header("Cookie: test-cookie");
         let response = curl.send().await.unwrap();
-        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
-        println!("{:?}", curl);
-        println!("{}", result);
+        println!("status code: {:?}", response.status_code);
+        println!("body: {}", response.body);
+        println!("headers: {:?}", response.headers);
     }
 
     #[tokio::test]
@@ -302,9 +385,9 @@ mod tests {
             .set_header("Content-Type: application/json")
             .set_header("Cookie: test-cookie");
         let response = curl.send().await.unwrap();
-        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
-        println!("{:?}", curl);
-        println!("{}", result);
+        println!("status code: {:?}", response.status_code);
+        println!("body: {}", response.body);
+        println!("headers: {:?}", response.headers);
     }
 
     #[tokio::test]
@@ -313,8 +396,8 @@ mod tests {
             .set_header("Content-Type: application/json")
             .redirects(true);
         let response = curl.send().await.unwrap();
-        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
-        println!("{:?}", curl);
-        println!("{}", result);
+        println!("status code: {:?}", response.status_code);
+        println!("body: {}", response.body);
+        println!("headers: {:?}", response.headers);
     }
 }
