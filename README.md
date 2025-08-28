@@ -3,7 +3,7 @@
 ### INSTALL
 ```toml
 [dependencies]
-curl-wrapper = { git = "https://github.com/mallocdev/curl-wrapper" }
+curl-wrapper = { git = "https://github.com/moz4rtdev/curl-wrapper" }
 ```
 
 ### USAGE
