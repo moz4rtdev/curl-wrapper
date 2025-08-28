@@ -11,8 +11,10 @@ pub enum Method {
     DELETE,
 }
 
+pub struct Curl;
+
 #[derive(Debug)]
-pub struct CurlWrapper {
+pub struct CurlBuilder {
     url: String,
     method: Option<Method>,
     headers: Vec<String>,
@@ -23,8 +25,8 @@ pub struct CurlWrapper {
     interface: Option<String>,
 }
 
-impl CurlWrapper {
-    /// Create a new `CurlWrapper` instance.
+impl Curl {
+    /// Create a new `Curl` instance.
     ///
     /// # Arguments
     ///
@@ -32,31 +34,31 @@ impl CurlWrapper {
     ///
     /// # Returns
     ///
-    /// A new `CurlWrapper` instance.
+    /// A new `CurlBuilder` instance.
     ///
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     /// use curl_wrapper::Method;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut curl = CurlWrapper::new("https://example.com");
-    ///     curl.method(Method::GET);
-    ///     curl.set_header("User-Agent: curl/7.81.0");
-    ///     curl.set_body("Hello, world!");
-    ///     curl.set_proxy("http://proxy.example.com:8080");
-    ///     curl.redirects(true);
-    ///     curl.compressed(true);
-    ///     curl.interface("eth0");
+    ///     let curl = Curl::new("https://example.com")
+    ///         .method(Method::GET)
+    ///         .set_header("User-Agent: curl/7.81.0")
+    ///         .set_body("Hello, world!")
+    ///         .set_proxy("http://proxy.example.com:8080")
+    ///         .redirects(true)
+    ///         .compressed(true)
+    ///         .interface("eth0");
     ///
-    ///     let output = curl.execute().await.unwrap();
+    ///     let output = curl.send().await.unwrap();
     ///     println!("Output: {}", String::from_utf8_lossy(&output.stdout));
     /// }
     /// ```
-    pub fn new(url: &str) -> Self {
-        Self {
+    pub fn new(url: &str) -> CurlBuilder {
+        CurlBuilder {
             url: url.to_string(),
             method: None,
             headers: Vec::new(),
@@ -67,20 +69,23 @@ impl CurlWrapper {
             interface: None,
         }
     }
+}
 
+impl CurlBuilder {
     /// Sets the HTTP method for the request.
     ///
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     /// use curl_wrapper::Method;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.method(Method::GET);
+    /// let curl = Curl::new("https://example.com")
+    ///     .method(Method::GET);
     /// ```
-    pub fn method(&mut self, method: Method) {
-        self.method = Some(method)
+    pub fn method(mut self, method: Method) -> Self {
+        self.method = Some(method);
+        self
     }
 
     /// Sets the HTTP headers for the request.
@@ -88,14 +93,15 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.set_header("User-Agent: curl/7.81.0");
-    /// curl.set_header("Accept: application/json");
+    /// let curl = Curl::new("https://example.com")
+    ///     .set_header("User-Agent: curl/7.81.0")
+    ///     .set_header("Accept: application/json");
     /// ```
-    pub fn set_header(&mut self, header: &str) {
+    pub fn set_header(mut self, header: &str) -> Self {
         self.headers.push(header.to_string());
+        self
     }
 
     /// Sets multiple HTTP headers for the request.
@@ -103,15 +109,16 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.set_headers(vec!["User-Agent: curl/7.81.0", "Accept: application/json"]);
+    /// let curl = Curl::new("https://example.com")
+    ///     .set_headers(vec!["User-Agent: curl/7.81.0", "Accept: application/json"]);
     /// ```
-    pub fn set_headers(&mut self, headers: Vec<&str>) {
+    pub fn set_headers(mut self, headers: Vec<&str>) -> Self {
         for h in headers {
             self.headers.push(h.to_string());
         }
+        self
     }
 
     /// Sets the HTTP body for the request.
@@ -119,13 +126,14 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.set_body("Hello, World!");
+    /// let curl = Curl::new("https://example.com")
+    ///     .set_body("Hello, World!");
     /// ```
-    pub fn set_body(&mut self, body: &str) {
-        self.body = Some(body.to_string())
+    pub fn set_body(mut self, body: &str) -> Self {
+        self.body = Some(body.to_string());
+        self
     }
 
     /// Sets the HTTP proxy for the request.
@@ -133,13 +141,14 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.set_proxy("http://proxy.example.com:8080");
+    /// let curl = Curl::new("https://example.com")
+    ///     .set_proxy("http://proxy.example.com:8080");
     /// ```
-    pub fn set_proxy(&mut self, proxy: &str) {
-        self.proxy = Some(proxy.to_string())
+    pub fn set_proxy(mut self, proxy: &str) -> Self {
+        self.proxy = Some(proxy.to_string());
+        self
     }
 
     /// Enables or disables redirects for the request.
@@ -147,13 +156,14 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.redirects(true);
+    /// let curl = Curl::new("https://example.com")
+    ///     .redirects(true);
     /// ```
-    pub fn redirects(&mut self, r: bool) {
+    pub fn redirects(mut self, r: bool) -> Self {
         self.redirects = r;
+        self
     }
 
     /// Enables or disables compression for the request.
@@ -161,13 +171,14 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.compressed(true);
+    /// let curl = Curl::new("https://example.com")
+    ///     .compressed(true);
     /// ```
-    pub fn compressed(&mut self, compress: bool) {
+    pub fn compressed(mut self, compress: bool) -> Self {
         self.compressed = compress;
+        self
     }
 
     /// Enables or disables interface for the request.
@@ -175,13 +186,14 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
-    /// let mut curl = CurlWrapper::new("https://example.com");
-    /// curl.interface("eth0");
+    /// let curl = Curl::new("https://example.com")
+    ///     .interface("eth0");
     /// ```
-    pub fn interface(&mut self, interface: &str) {
+    pub fn interface(mut self, interface: &str) -> Self {
         self.interface = Some(interface.to_string());
+        self
     }
 
     /// Executes the request and returns the output.
@@ -189,17 +201,17 @@ impl CurlWrapper {
     /// # Example
     ///
     /// ```
-    /// use curl_wrapper::CurlWrapper;
+    /// use curl_wrapper::Curl;
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut curl = CurlWrapper::new("https://example.com");
-    ///     curl.interface("eth0");
-    ///     let output = curl.execute().await.unwrap();
+    ///     let curl = Curl::new("https://example.com")
+    ///         .interface("eth0");
+    ///     let output = curl.send().await.unwrap();
     ///     println!("Output: {}", String::from_utf8_lossy(&output.stdout));
     /// }
     /// ```
-    pub async fn execute(&self) -> Result<Output, io::Error> {
+    pub async fn send(&self) -> Result<Output, io::Error> {
         let mut curl = Command::new("curl");
 
         if let Some(interface) = &self.interface {
@@ -249,51 +261,60 @@ mod tests {
 
     #[tokio::test]
     async fn get() {
-        let mut curl = CurlWrapper::new("https://httpbin.org/get");
-        curl.set_header("Content-Type: application/json");
-        curl.set_header("Cookie: test-cookie");
-        let response = curl.execute().await;
+        let curl = Curl::new("https://httpbin.org/get")
+            .method(Method::GET)
+            .set_header("Content-Type: application/json")
+            .set_header("Cookie: test-cookie");
+        let response = curl.send().await.unwrap();
+        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
         println!("{:?}", curl);
-        println!("{:?}", response);
+        println!("{}", result);
     }
 
     #[tokio::test]
     async fn post() {
-        let mut curl = CurlWrapper::new("https://httpbin.org/post");
-        curl.set_header("Content-Type: application/json");
-        curl.set_header("Cookie: test-cookie");
-        let response = curl.execute().await;
+        let curl = Curl::new("https://httpbin.org/post")
+            .method(Method::POST)
+            .set_header("Content-Type: application/json")
+            .set_header("Cookie: test-cookie");
+        let response = curl.send().await.unwrap();
+        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
         println!("{:?}", curl);
-        println!("{:?}", response);
+        println!("{}", result);
     }
 
     #[tokio::test]
     async fn put() {
-        let mut curl = CurlWrapper::new("https://httpbin.org/put");
-        curl.set_header("Content-Type: application/json");
-        curl.set_header("Cookie: test-cookie");
-        let response = curl.execute().await;
+        let curl = Curl::new("https://httpbin.org/put")
+            .method(Method::PUT)
+            .set_header("Content-Type: application/json")
+            .set_header("Cookie: test-cookie");
+        let response = curl.send().await.unwrap();
+        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
         println!("{:?}", curl);
-        println!("{:?}", response);
+        println!("{}", result);
     }
 
     #[tokio::test]
     async fn delete() {
-        let mut curl = CurlWrapper::new("https://httpbin.org/delete");
-        curl.set_header("Content-Type: application/json");
-        curl.set_header("Cookie: test-cookie");
-        let response = curl.execute().await;
+        let curl = Curl::new("https://httpbin.org/delete")
+            .method(Method::DELETE)
+            .set_header("Content-Type: application/json")
+            .set_header("Cookie: test-cookie");
+        let response = curl.send().await.unwrap();
+        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
         println!("{:?}", curl);
-        println!("{:?}", response);
+        println!("{}", result);
     }
 
     #[tokio::test]
     async fn redirect() {
-        let mut curl = CurlWrapper::new("https://google.com");
-        curl.set_header("Content-Type: application/json");
-        curl.redirects(true);
-        let response = curl.execute().await;
+        let curl = Curl::new("https://httpbin.org/redirect-to?url=https://httpbin.org/get")
+            .set_header("Content-Type: application/json")
+            .redirects(true);
+        let response = curl.send().await.unwrap();
+        let result = std::str::from_utf8(&response.stdout[..]).unwrap();
         println!("{:?}", curl);
-        println!("{:?}", response);
+        println!("{}", result);
     }
 }
