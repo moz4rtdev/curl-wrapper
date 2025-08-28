@@ -22,10 +22,10 @@ async fn main() {
     .compressed(true)
     .interface("eth0")
 
-  let output = curl.send().await.unwrap();
-  println!("status code: {}", curl.status_code);
-  println!("headers: {}", curl.headers);
-  println!("body: {}", curl.body);
+  let response = curl.send().await.unwrap();
+  println!("status code: {}", response.status_code);
+  println!("headers: {}", response.headers);
+  println!("body: {}", response.body);
 
 }
 ```
