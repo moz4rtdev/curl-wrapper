@@ -23,6 +23,9 @@ async fn main() {
     .interface("eth0")
 
   let output = curl.send().await.unwrap();
-  println!("Output: {}", String::from_utf8_lossy(&output.stdout));
+  println!("status code: {}", curl.status_code);
+  println!("headers: {}", curl.headers);
+  println!("body: {}", curl.body);
+
 }
 ```
